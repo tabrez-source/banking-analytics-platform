@@ -19,3 +19,6 @@ data/*.json
 # ===============================
 Thumbs.db
 .DS_Store
+
+# Power BI files (too large for Git)
+powerbi/*.pbix
