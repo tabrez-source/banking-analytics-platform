@@ -1,163 +1,188 @@
 # Banking Analytics Platform
 
 ## Overview
-This repository contains an end-to-end **Banking Analytics Platform** built using SQL Server and Power BI concepts.  
-The project demonstrates how raw financial transaction data can be ingested, validated, modeled, and prepared for analytical reporting using a layered data architecture.
+This repository contains an end-to-end **Banking Analytics Platform** built using **SQL Server and Power BI**.
 
-The focus of this project is on **data engineering, OLTP design, data quality enforcement, and analytics readiness**, following patterns commonly used in enterprise environments.
+The project demonstrates how large-scale financial transaction data can be ingested, validated, modeled, transformed, and prepared for analytical reporting using a layered enterprise-style data architecture.
+
+The primary focus of this project is **data engineering, OLTP schema design, data quality enforcement, data warehousing, reporting readiness, and operational maintenance**, following patterns commonly used in real-world enterprise environments.
 
 ---
 
 ## Architecture Overview
+The platform follows a layered architecture to ensure scalability, data quality, performance, and separation of concerns.
 
-![Architecture Diagram](architecture/architecture-overview.png)
+A visual architecture diagram is available in the repository: architecture/architecture-overview.png
 
-The platform follows a layered architecture to ensure scalability, data quality, and separation of concerns:
-
-1. **Data Source**
-   - Large-scale CSV dataset representing banking transactions (~6.3 million records)
-   - Simulates real-world transactional and fraud-related data
-
-2. **Staging Layer (SQL Server)**
-   - Raw data ingestion using `BULK INSERT`
-   - Minimal constraints to ensure high-load performance
-   - Handles encoding issues and malformed rows
-   - Acts as the landing zone for all incoming data
-
-3. **ETL Layer (T-SQL)**
-   - Data type validation using `TRY_CONVERT`
-   - Business rule enforcement
-   - Identification and logging of rejected records
-   - Ensures only clean and valid data reaches OLTP
-
-4. **OLTP Layer (SQL Server)**
-   - Fully normalized transactional schema
-   - Primary and foreign key constraints for referential integrity
-   - CHECK constraints for data quality
-   - Indexing for performance optimization
-   - Separate reject table for audit and troubleshooting
-
-5. **Data Warehouse (Planned)**
-   - Star schema design (Fact and Dimension tables)
-   - Optimized for analytical queries and reporting
-
-6. **Power BI (Planned)**
-   - Fraud analysis dashboards
-   - Transaction trends and volume analysis
-   - Business-focused reporting using DAX
 
 ---
 
-## Database Layers
-
-### Staging Database
-Purpose:
-- Capture raw transactional data exactly as received
-- Support high-volume ingestion
-- Preserve source data for reprocessing and auditing
-
-Key Characteristics:
-- No strict data types
-- No business constraints
-- High tolerance for malformed data
+## Data Source
+- Large-scale CSV dataset representing banking transactions  
+- Approximately **6.3 million records**  
+- Includes transaction behavior and fraud indicators  
+- Simulates real-world financial and fraud-related scenarios  
 
 ---
 
-### OLTP Database
-Purpose:
-- Store validated and clean transactional data
-- Support reliable transactional operations
-- Maintain strong data integrity
+## Staging Layer (SQL Server)
+The staging layer is responsible for raw data ingestion.
 
-Key Features:
-- Normalized schema
+**Key characteristics:**
+- High-volume ingestion using `BULK INSERT`
+- Minimal constraints to maximize load performance
+- Handles encoding issues and malformed rows
+- Acts as a landing zone for all incoming data
+- Preserves source data for auditing and reprocessing
+
+---
+
+## ETL Layer (T-SQL)
+The ETL layer enforces data quality and business rules before data reaches the OLTP layer.
+
+**Responsibilities:**
+- Data type validation using `TRY_CONVERT`
+- Business rule enforcement
+- Identification and logging of rejected records
+- Ensures only clean and validated data progresses downstream
+
+---
+
+## OLTP Layer (SQL Server)
+The OLTP layer stores validated transactional data and enforces strict data integrity.
+
+**Key features:**
+- Fully normalized schema
 - Surrogate primary keys
-- Foreign key relationships
-- CHECK constraints (e.g., positive transaction amounts)
-- Indexes on frequently queried columns
-- Dedicated rejected transactions table
+- Foreign key relationships for referential integrity
+- CHECK constraints (e.g. positive transaction amounts)
+- Indexes on frequently accessed columns
+- Dedicated rejected transactions table for audit and troubleshooting
+
+---
+
+## Data Warehouse Layer (SQL Server)
+The data warehouse is designed for analytical reporting and BI consumption.
+
+**Design and capabilities:**
+- Star schema implementation
+  - FactTransactions
+  - DimAccount
+  - DimDate
+  - DimTransactionType
+- Surrogate keys for all dimensions
+- Automated DW refresh via stored procedures
+- ETL audit logging using `DW_Load_Audit`
+- Reporting views providing a stable semantic layer
+- Parameterized reporting stored procedures for controlled access
+
+---
+
+## Reporting and BI Layer (Power BI)
+Power BI is used for analytical reporting and visualization.
+
+**Features:**
+- Fraud analysis dashboards
+- Transaction trends and volume analysis
+- Business-friendly reporting model built on DW views
+- Reduced model complexity by consuming curated views
+
+**Notes:**
+- Power BI `.pbix` files are excluded due to file size constraints
+- Dashboard screenshots are included in the repository
+- Dashboards can be fully recreated using documented DW views
+
+---
+
+## Database Layers Summary
+
+**Staging Database**
+- Raw data ingestion
+- High tolerance for malformed data
+- Minimal constraints
+
+**OLTP Database**
+- Clean and validated transactional data
+- Strong data integrity and business rule enforcement
+
+**Data Warehouse**
+- Analytics-optimized star schema
+- Reporting views and stored procedures
+- ETL and maintenance audit logging
 
 ---
 
 ## Data Quality Handling
 Data quality is enforced at multiple stages:
+- Invalid numeric values filtered using `TRY_CONVERT`
+- Transactions with invalid or non-positive amounts rejected
+- Rejected records logged with timestamps and rejection reasons
+- OLTP and DW layers remain clean and consistent
 
-- Invalid numeric values are filtered using `TRY_CONVERT`
-- Transactions with invalid or non-positive amounts are rejected
-- Rejected records are stored with rejection reasons and timestamps
-- OLTP tables remain clean and consistent at all times
+---
+
+## Maintenance and Operations
+The platform includes enterprise-style maintenance automation:
+- Index fragmentation analysis
+- Index rebuild and reorganize based on thresholds
+- Statistics updates after large ETL loads
+- Maintenance execution logged using the audit framework
 
 ---
 
 ## Technologies Used
 - Microsoft SQL Server
-- T-SQL (DDL, DML, Constraints, Indexing)
-- Git & GitHub
-- Power BI (planned)
-- draw.io (architecture diagram)
+- T-SQL (DDL, DML, constraints, indexing, stored procedures)
+- Power BI
+- Git and GitHub
+- draw.io (architecture diagrams)
 
 ---
 
 ## Repository Structure
 banking-analytics-platform/
-│
 ├── architecture/
-│ └── architecture-overview.png
-│
 ├── staging/
-│ ├── create_staging_table.sql
-│ └── bulk_insert_staging.sql
-│
 ├── oltp/
-│ ├── create_tables.sql
-│ ├── indexes.sql
-│ ├── load_accounts.sql
-│ ├── load_transaction_types.sql
-│ ├── load_transactions.sql
-│ └── rejected_transactions.sql
-│
-├── dw/ # Planned
-├── powerbi/ # Planned
-├── maintenance/ # Planned
-│
+├── dw/
+├── maintenance/
+├── powerbi/
 ├── docs/
-│ ├── assumptions.md
-│ ├── data-quality-rules.md
-│ └── interview-explanation.md
-│
 ├── data/
-│ └── README.md
-│
 ├── .gitignore
 └── README.md
 
 
 ---
 
-## Dataset
-- Source: Public synthetic banking transaction dataset
-- Volume: ~6.3 million rows
-- Domain: Financial transactions and fraud detection
+## Dataset Information
+- Public synthetic banking transaction dataset
+- Approximately **6.3 million rows**
+- Domain: financial transactions and fraud detection
 
-> Note: Raw dataset files are intentionally excluded from this repository due to GitHub file size limits.  
-> Instructions to obtain and load the dataset are provided in `data/README.md`.
+Raw dataset files are excluded due to GitHub file size limits.  
+Instructions to obtain and load the dataset are provided in `data/README.md`.
 
 ---
 
 ## Project Status
 - Staging layer: Completed
 - OLTP layer: Completed
-- Architecture documentation: Completed
-- Data Warehouse: Planned
-- Power BI dashboards: Planned
+- Data warehouse: Completed
+- Reporting views and stored procedures: Completed
+- Maintenance automation: Completed
+- Power BI dashboards: Completed
+- Documentation: Completed
 
 ---
 
 ## Purpose of This Project
 This project is designed to demonstrate:
 - Real-world data ingestion patterns
-- OLTP schema design and constraints
+- OLTP and data warehouse schema design
 - Data validation and rejection handling
-- Enterprise-style data architecture
-- Readiness for analytics and BI reporting
+- Enterprise ETL orchestration and auditing
+- Analytics-ready data modeling
+- BI-friendly reporting layers
+
 
